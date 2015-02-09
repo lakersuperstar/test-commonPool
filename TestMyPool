@@ -1,0 +1,88 @@
+package com.test.pool;
+
+import org.apache.commons.pool2.ObjectPool;
+import org.apache.commons.pool2.PooledObjectFactory;
+import org.apache.commons.pool2.impl.GenericObjectPool;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
+
+public class TestMyPool {
+
+    public static void main(String[] args) {
+        try {
+            test();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void test() throws Exception {
+        GenericObjectPoolConfig poolConfig = new GenericObjectPoolConfig();
+        poolConfig.setMaxWaitMillis(20000);
+        poolConfig.setMaxTotal(5);
+        poolConfig.setMaxIdle(5);
+        poolConfig.setTestWhileIdle(true);
+        poolConfig.setLifo(false);
+        poolConfig.setTimeBetweenEvictionRunsMillis(1);
+        PooledObjectFactory<MyConnection> factory = new MyConnectionPoolableObjectFactory();
+        System.out.println(factory.makeObject().getObject().isConnected());
+        ObjectPool<MyConnection> pool = new GenericObjectPool<MyConnection>(factory, poolConfig);
+        execute(pool);
+
+    }
+
+    private static void execute(ObjectPool<MyConnection> pool) {
+        for (int i = 0; i < 10; i++) {
+            Thread thread = new Thread(new MyTask(pool));
+            thread.setDaemon(true);
+            thread.start();
+
+            try {
+                // Thread.sleep(2000l);
+            } catch (Exception e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            System.out.println("120313");
+        }
+    }
+
+}
+
+class MyTask implements Runnable {
+
+    private ObjectPool<MyConnection> pool;
+
+    public MyTask(ObjectPool<MyConnection> pool) {
+        this.pool = pool;
+    }
+
+    public void run() {
+        MyConnection connection = null;
+        try {
+            System.out.println("pool.getNumActive:" + pool.getNumActive());
+            connection = (MyConnection) pool.borrowObject();
+            connection.print();
+            Thread.sleep(10L * 1000L);
+        } catch (Exception e) {
+            try {
+                pool.invalidateObject(connection);
+            } catch (Exception e1) {
+                connection = null;
+                e1.printStackTrace();
+            }
+            e.printStackTrace();
+
+        } finally {
+            try {
+                if (connection != null) {
+                    pool.returnObject(connection);
+                }
+            } catch (Exception e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+
+    }
+
+}
