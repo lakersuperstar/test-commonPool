@@ -1,0 +1,24 @@
+package com.test.pool;
+
+import org.apache.commons.pool2.BasePooledObjectFactory;
+import org.apache.commons.pool2.PooledObject;
+import org.apache.commons.pool2.impl.DefaultPooledObject;
+
+public class MyConnectionPoolableObjectFactory extends BasePooledObjectFactory<MyConnection> {
+
+    private static int count = 0;
+
+    private synchronized String generateName() {
+        return "conn_" + (++count);
+    }
+
+    public MyConnection create() throws Exception {
+        MyConnection my = new MyConnection(generateName());
+        System.out.println("create myConnection:" + my.getName());
+        return my;
+    }
+
+    public PooledObject<MyConnection> wrap(MyConnection obj) {
+        return new DefaultPooledObject<MyConnection>(obj);
+    }
+}
